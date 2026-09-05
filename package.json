@@ -1,8 +1,8 @@
 {
   "$schema": "https://www.raycast.com/schemas/extension.json",
-  "name": "mac-monitor",
-  "title": "Mac Monitor",
-  "description": "Lightweight, on-demand system monitor: top processes, login items, and launch agents with quick actions.",
+  "name": "leftovers",
+  "title": "Leftovers",
+  "description": "Finds what you left running: forgotten dev servers, stale launch agents, and login items you never approved.",
   "icon": "icon.png",
   "author": "tonirilix",
   "categories": ["System"],
@@ -10,9 +10,9 @@
   "commands": [
     {
       "name": "index",
-      "title": "Mac Monitor",
-      "subtitle": "System Health",
-      "description": "View top processes, login items, and launch agents. Kill or disable with one action.",
+      "title": "Leftovers",
+      "subtitle": "What's still running",
+      "description": "Find forgotten dev servers, stale launch agents, and login items. Kill or disable with one action.",
       "mode": "view"
     }
   ],
