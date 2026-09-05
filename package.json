@@ -1,0 +1,38 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "mac-monitor",
+  "title": "Mac Monitor",
+  "description": "Lightweight, on-demand system monitor: top processes, login items, and launch agents with quick actions.",
+  "icon": "icon.png",
+  "author": "tonirilix",
+  "categories": ["System"],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "index",
+      "title": "Mac Monitor",
+      "subtitle": "System Health",
+      "description": "View top processes, login items, and launch agents. Kill or disable with one action.",
+      "mode": "view"
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^2.2.0",
+    "@raycast/utils": "^2.3.1"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^1.0.11",
+    "@types/node": "^20.8.10",
+    "@types/react": "19.0.10",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.4.5"
+  },
+  "scripts": {
+    "build": "ray build",
+    "dev": "ray develop",
+    "fix-lint": "ray lint --fix",
+    "lint": "ray lint",
+    "publish": "npx @raycast/api@latest publish"
+  }
+}
