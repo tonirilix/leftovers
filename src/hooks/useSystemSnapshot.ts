@@ -1,9 +1,17 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getProcessSnapshot, getTopProcesses } from "../lib/processes";
 import { getListeningPorts } from "../lib/ports";
 import { getLoginItems } from "../lib/loginItems";
 import { getUserLaunchAgents } from "../lib/launchAgents";
-import type { DevServerInfo, LaunchAgentInfo, ProcessInfo, SectionKey } from "../types";
+import { getMemoryStats } from "../lib/system";
+import type {
+  DevServerInfo,
+  LaunchAgentInfo,
+  MemoryStats,
+  ProcessInfo,
+  SectionKey,
+  SortMode,
+} from "../types";
 
 const LIVE_REFRESH_MS = 4_000;
 
@@ -15,6 +23,7 @@ export interface SystemSnapshot {
   devServers: DevServerInfo[];
   loginItems: string[];
   agents: LaunchAgentInfo[];
+  memory: MemoryStats | null;
   errors: Errors;
   /** Re-reads everything, including the slow sources. */
   refresh: () => void;
@@ -22,13 +31,18 @@ export interface SystemSnapshot {
   refreshStatic: () => void;
 }
 
-export function useSystemSnapshot(): SystemSnapshot {
+export function useSystemSnapshot(sortBy: SortMode = "cpu"): SystemSnapshot {
   const [isLoading, setIsLoading] = useState(true);
-  const [processes, setProcesses] = useState<ProcessInfo[]>([]);
+  const [snapshot, setSnapshot] = useState<Map<string, ProcessInfo>>(new Map());
   const [devServers, setDevServers] = useState<DevServerInfo[]>([]);
   const [loginItems, setLoginItems] = useState<string[]>([]);
   const [agents, setAgents] = useState<LaunchAgentInfo[]>([]);
+  const [memory, setMemory] = useState<MemoryStats | null>(null);
   const [errors, setErrors] = useState<Errors>({});
+
+  // Re-sorting is a local operation on data already in hand, so switching the
+  // sort mode doesn't need another `ps`.
+  const processes = useMemo(() => getTopProcesses(snapshot, undefined, sortBy), [snapshot, sortBy]);
 
   const setSectionError = useCallback((key: SectionKey, error: unknown) => {
     const message = error === undefined ? undefined : String(error);
@@ -46,10 +60,17 @@ export function useSystemSnapshot(): SystemSnapshot {
    * and the port list, so a tick costs one `ps` plus one `lsof`.
    */
   const refreshLive = useCallback(() => {
-    let snapshot: Map<string, ProcessInfo>;
     try {
-      snapshot = getProcessSnapshot();
-      setProcesses(getTopProcesses(snapshot));
+      setMemory(getMemoryStats());
+      setSectionError("memory", undefined);
+    } catch (error) {
+      setSectionError("memory", error);
+    }
+
+    let current: Map<string, ProcessInfo>;
+    try {
+      current = getProcessSnapshot();
+      setSnapshot(current);
       setSectionError("processes", undefined);
     } catch (error) {
       setSectionError("processes", error);
@@ -57,7 +78,7 @@ export function useSystemSnapshot(): SystemSnapshot {
     }
 
     try {
-      setDevServers(getListeningPorts(snapshot));
+      setDevServers(getListeningPorts(current));
       setSectionError("devServers", undefined);
     } catch (error) {
       setSectionError("devServers", error);
@@ -124,6 +145,7 @@ export function useSystemSnapshot(): SystemSnapshot {
     devServers,
     loginItems,
     agents,
+    memory,
     errors,
     refresh,
     refreshStatic,

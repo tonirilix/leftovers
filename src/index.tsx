@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Action,
   ActionPanel,
@@ -12,11 +13,19 @@ import {
 } from "@raycast/api";
 import { SharedActions } from "./components/SharedActions";
 import { useSystemSnapshot } from "./hooks/useSystemSnapshot";
-import { buildReport, cpuColor, uptimeColor } from "./lib/format";
+import {
+  buildReport,
+  cpuColor,
+  describeMemory,
+  formatMB,
+  memoryColor,
+  pressureColor,
+  uptimeColor,
+} from "./lib/format";
 import { AUTOMATION_SETTINGS_URL, isAutomationError, removeLoginItem } from "./lib/loginItems";
 import { disableLaunchAgent } from "./lib/launchAgents";
 import { killProcess } from "./lib/processes";
-import type { DevServerInfo, LaunchAgentInfo, ProcessInfo } from "./types";
+import type { DevServerInfo, LaunchAgentInfo, MemoryStats, ProcessInfo, SortMode } from "./types";
 
 function SectionError({ message, onRefresh }: { message: string; onRefresh: () => void }) {
   if (!isAutomationError(message)) {
@@ -43,9 +52,25 @@ function SectionError({ message, onRefresh }: { message: string; onRefresh: () =
   );
 }
 
+const PRESSURE_LABEL: Record<MemoryStats["pressure"], string> = {
+  normal: "Memory pressure normal",
+  elevated: "Memory pressure elevated",
+  critical: "Memory pressure critical — the Mac is swapping",
+};
+
 export default function Command() {
-  const { isLoading, processes, devServers, loginItems, agents, errors, refresh, refreshStatic } =
-    useSystemSnapshot();
+  const [sortBy, setSortBy] = useState<SortMode>("cpu");
+  const {
+    isLoading,
+    processes,
+    devServers,
+    loginItems,
+    agents,
+    memory,
+    errors,
+    refresh,
+    refreshStatic,
+  } = useSystemSnapshot(sortBy);
 
   async function copyReport() {
     try {
@@ -140,10 +165,17 @@ export default function Command() {
     }
   }
 
+  function toggleSort() {
+    setSortBy((current) => (current === "cpu" ? "memory" : "cpu"));
+  }
+
   function portAccessories(server: DevServerInfo) {
     const staleness = uptimeColor(server.etime);
-    const usage = { text: `${server.cpu.toFixed(1)}% · ${server.rssMB} MB` };
-    if (!staleness) return [usage];
+    const usage = [
+      { tag: { value: formatMB(server.rssMB), color: memoryColor(server.rssMB) } },
+      { text: `${server.cpu.toFixed(1)}%` },
+    ];
+    if (!staleness) return usage;
 
     return [
       {
@@ -151,13 +183,49 @@ export default function Command() {
         text: server.etime,
         tooltip: "Been running a while — still needed?",
       },
-      usage,
+      ...usage,
     ];
   }
 
+  const sharedActions = (
+    <SharedActions
+      sortBy={sortBy}
+      onToggleSort={toggleSort}
+      onCopyReport={copyReport}
+      onRefresh={refresh}
+    />
+  );
+
   return (
     <List isLoading={isLoading}>
-      <List.Section title="Top Processes" subtitle={`${processes.length}`}>
+      <List.Section title="System">
+        {errors.memory && <SectionError message={errors.memory} onRefresh={refresh} />}
+        {memory && (
+          <List.Item
+            icon={{ source: Icon.MemoryChip, tintColor: pressureColor(memory.pressure) }}
+            title={PRESSURE_LABEL[memory.pressure]}
+            subtitle={describeMemory(memory)}
+            accessories={
+              memory.swapUsedMB > 0
+                ? [
+                    {
+                      tag: {
+                        value: `swap ${formatMB(memory.swapUsedMB)}`,
+                        color: pressureColor(memory.pressure),
+                      },
+                    },
+                  ]
+                : []
+            }
+            actions={<ActionPanel>{sharedActions}</ActionPanel>}
+          />
+        )}
+      </List.Section>
+
+      <List.Section
+        title="Top Processes"
+        subtitle={`${processes.length} · by ${sortBy === "cpu" ? "CPU" : "memory"}`}
+      >
         {errors.processes && <SectionError message={errors.processes} onRefresh={refresh} />}
         {processes.map((process) => (
           <List.Item
@@ -167,8 +235,11 @@ export default function Command() {
               tintColor: cpuColor(process.cpu),
             }}
             title={process.name}
-            subtitle={`PID ${process.pid} · ${process.rssMB} MB`}
-            accessories={[{ text: `${process.cpu.toFixed(1)}%` }]}
+            subtitle={`PID ${process.pid}`}
+            accessories={[
+              { tag: { value: formatMB(process.rssMB), color: memoryColor(process.rssMB) } },
+              { text: `${process.cpu.toFixed(1)}%` },
+            ]}
             actions={
               <ActionPanel>
                 <Action
@@ -178,7 +249,12 @@ export default function Command() {
                   onAction={() => confirmKill(process)}
                 />
                 <Action.CopyToClipboard title="Copy Pid" content={process.pid} />
-                <SharedActions onCopyReport={copyReport} onRefresh={refresh} />
+                <SharedActions
+                  sortBy={sortBy}
+                  onToggleSort={toggleSort}
+                  onCopyReport={copyReport}
+                  onRefresh={refresh}
+                />
               </ActionPanel>
             }
           />
@@ -204,7 +280,12 @@ export default function Command() {
                   onAction={() => confirmKill(server)}
                 />
                 <Action.CopyToClipboard title="Copy Port" content={server.ports.join(", ")} />
-                <SharedActions onCopyReport={copyReport} onRefresh={refresh} />
+                <SharedActions
+                  sortBy={sortBy}
+                  onToggleSort={toggleSort}
+                  onCopyReport={copyReport}
+                  onRefresh={refresh}
+                />
               </ActionPanel>
             }
           />
@@ -226,7 +307,12 @@ export default function Command() {
                   style={Action.Style.Destructive}
                   onAction={() => confirmRemoveLoginItem(name)}
                 />
-                <SharedActions onCopyReport={copyReport} onRefresh={refresh} />
+                <SharedActions
+                  sortBy={sortBy}
+                  onToggleSort={toggleSort}
+                  onCopyReport={copyReport}
+                  onRefresh={refresh}
+                />
               </ActionPanel>
             }
           />
@@ -249,7 +335,12 @@ export default function Command() {
                   onAction={() => confirmDisableAgent(agent)}
                 />
                 <Action.ShowInFinder title="Show Plist in Finder" path={agent.path} />
-                <SharedActions onCopyReport={copyReport} onRefresh={refresh} />
+                <SharedActions
+                  sortBy={sortBy}
+                  onToggleSort={toggleSort}
+                  onCopyReport={copyReport}
+                  onRefresh={refresh}
+                />
               </ActionPanel>
             }
           />

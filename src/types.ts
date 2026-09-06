@@ -16,4 +16,17 @@ export interface LaunchAgentInfo {
   path: string;
 }
 
-export type SectionKey = "processes" | "devServers" | "loginItems" | "agents";
+export type SectionKey = "processes" | "devServers" | "loginItems" | "agents" | "memory";
+
+/** How the process list is ordered. CPU alone hides memory hogs. */
+export type SortMode = "cpu" | "memory";
+
+export type MemoryPressure = "normal" | "elevated" | "critical";
+
+export interface MemoryStats {
+  freeMB: number;
+  compressedMB: number;
+  swapUsedMB: number;
+  swapTotalMB: number;
+  pressure: MemoryPressure;
+}

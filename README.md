@@ -12,20 +12,31 @@ command is open.
 
 ## What it shows
 
-| Section               | Source                          | Refresh                          |
-| --------------------- | ------------------------------- | -------------------------------- |
-| **Top Processes**     | `ps`                            | every 4s while open              |
-| **Listening Ports**   | `lsof`, joined to the `ps` data | every 4s while open              |
-| **Login Items**       | `osascript` → System Events     | on open, and after you change one |
-| **User Launch Agents**| `~/Library/LaunchAgents`        | on open, and after you change one |
+| Section                | Source                           | Refresh                           |
+| ---------------------- | -------------------------------- | --------------------------------- |
+| **System**             | `vm_stat`, `sysctl vm.swapusage` | every 4s while open               |
+| **Top Processes**      | `ps`                             | every 4s while open               |
+| **Listening Ports**    | `lsof`, joined to the `ps` data  | every 4s while open               |
+| **Login Items**        | `osascript` → System Events      | on open, and after you change one |
+| **User Launch Agents** | `~/Library/LaunchAgents`         | on open, and after you change one |
 
 Listening Ports exists to catch forgotten dev servers. Anything alive for 4+
 hours gets a yellow clock badge, 24+ hours a red one. Ports are searchable, so
 typing `5173` finds the process holding it.
 
+The System row exists because a Mac can be audibly struggling while every CPU
+figure looks calm — the cause is memory pressure and swapping, which no
+per-process CPU number reveals. Pressure is called critical past 4 GB of swap
+in use or under 256 MB free, elevated past 1 GB of swap or under 1 GB free.
+
+Memory is a coloured tag on every process row (red past 1 GB, yellow past
+400 MB), because a process holding gigabytes at 0% CPU sits at the bottom of a
+CPU-ranked list. `⌘T` re-sorts by memory to bring those to the top.
+
 ## Actions
 
-Every row offers **Copy Report** (`⌘⇧C`) and **Refresh** (`⌘R`). Per row:
+Every row offers **Sort by Memory / CPU** (`⌘T`), **Copy Report** (`⌘⇧C`) and
+**Refresh** (`⌘R`). Per row:
 
 - Processes / Ports — **Kill Process**, Copy PID / Copy Port
 - Login Items — **Remove Login Item**
