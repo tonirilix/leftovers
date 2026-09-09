@@ -52,10 +52,17 @@ function SectionError({ message, onRefresh }: { message: string; onRefresh: () =
   );
 }
 
+// Kept short: Raycast clips the title, and the row is useless once clipped.
 const PRESSURE_LABEL: Record<MemoryStats["pressure"], string> = {
-  normal: "Memory pressure normal",
-  elevated: "Memory pressure elevated",
-  critical: "Memory pressure critical — the Mac is swapping",
+  normal: "Memory pressure: Normal",
+  elevated: "Memory pressure: Elevated",
+  critical: "Memory pressure: Critical",
+};
+
+const PRESSURE_HINT: Record<MemoryStats["pressure"], string> = {
+  normal: "Plenty of headroom.",
+  elevated: "Memory is tight. Swapping may begin under load.",
+  critical: "The Mac is swapping — this is what makes the fans spin with no busy process to blame.",
 };
 
 export default function Command() {
@@ -205,6 +212,8 @@ export default function Command() {
             icon={{ source: Icon.MemoryChip, tintColor: pressureColor(memory.pressure) }}
             title={PRESSURE_LABEL[memory.pressure]}
             subtitle={describeMemory(memory)}
+            // An accessory is the only part of the row that never truncates, so
+            // swap lives there alone, with the explanation as its tooltip.
             accessories={
               memory.swapUsedMB > 0
                 ? [
@@ -213,9 +222,12 @@ export default function Command() {
                         value: `swap ${formatMB(memory.swapUsedMB)}`,
                         color: pressureColor(memory.pressure),
                       },
+                      tooltip:
+                        `${formatMB(memory.swapUsedMB)} of ${formatMB(memory.swapTotalMB)} swap in use. ` +
+                        PRESSURE_HINT[memory.pressure],
                     },
                   ]
-                : []
+                : [{ text: PRESSURE_HINT[memory.pressure] }]
             }
             actions={<ActionPanel>{sharedActions}</ActionPanel>}
           />

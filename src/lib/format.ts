@@ -38,12 +38,12 @@ export function formatMB(megabytes: number): string {
 }
 
 /**
- * Swap in active use is the giveaway that the machine is thrashing, which is
- * why it leads the summary rather than the free figure.
+ * Swap is deliberately absent here: it already has an accessory tag, and the
+ * subtitle is the first thing Raycast truncates, so repeating it would push the
+ * compressed figure off the row.
  */
 export function describeMemory(memory: MemoryStats): string {
   const parts = [`${formatMB(memory.freeMB)} free`];
-  if (memory.swapUsedMB > 0) parts.push(`${formatMB(memory.swapUsedMB)} swap used`);
   if (memory.compressedMB > 0) parts.push(`${formatMB(memory.compressedMB)} compressed`);
   return parts.join(" · ");
 }
