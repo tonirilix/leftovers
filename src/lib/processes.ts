@@ -1,5 +1,5 @@
 import { BIN, run } from "./shell";
-import type { ProcessInfo } from "../types";
+import type { ProcessInfo, SortMode } from "../types";
 
 const DEFAULT_LIMIT = 15;
 
@@ -33,12 +33,21 @@ export function getProcessSnapshot(): Map<string, ProcessInfo> {
   return snapshot;
 }
 
-/** `ps -r` already sorts by CPU, so this just takes the head of the snapshot. */
+/**
+ * `ps -r` returns the snapshot already ordered by CPU, so that mode is just the
+ * head of it. Sorting by memory matters because a process can hold gigabytes
+ * while using almost no CPU, which keeps it out of a CPU-ranked list entirely.
+ */
 export function getTopProcesses(
   snapshot: Map<string, ProcessInfo>,
   limit = DEFAULT_LIMIT,
+  sortBy: SortMode = "cpu",
 ): ProcessInfo[] {
-  return Array.from(snapshot.values()).slice(0, limit);
+  const processes = Array.from(snapshot.values());
+  if (sortBy === "memory") {
+    processes.sort((a, b) => b.rssMB - a.rssMB);
+  }
+  return processes.slice(0, limit);
 }
 
 export function killProcess(pid: string): void {

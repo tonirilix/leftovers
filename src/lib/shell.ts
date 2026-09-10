@@ -12,6 +12,7 @@ export const BIN = {
   launchctl: "/bin/launchctl",
   uptime: "/usr/bin/uptime",
   vmStat: "/usr/bin/vm_stat",
+  sysctl: "/usr/sbin/sysctl",
   df: "/bin/df",
 } as const;
 

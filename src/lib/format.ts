@@ -1,9 +1,17 @@
 import { Color } from "@raycast/api";
 import { getSystemSummary } from "./system";
-import type { DevServerInfo, LaunchAgentInfo, ProcessInfo } from "../types";
+import type {
+  DevServerInfo,
+  LaunchAgentInfo,
+  MemoryPressure,
+  MemoryStats,
+  ProcessInfo,
+} from "../types";
 
 const HIGH_CPU = 50;
 const ELEVATED_CPU = 15;
+const HIGH_MEMORY_MB = 1000;
+const ELEVATED_MEMORY_MB = 400;
 const STALE_MINUTES = 24 * 60;
 const AGING_MINUTES = 4 * 60;
 
@@ -11,6 +19,33 @@ export function cpuColor(cpu: number): Color {
   if (cpu >= HIGH_CPU) return Color.Red;
   if (cpu >= ELEVATED_CPU) return Color.Yellow;
   return Color.Green;
+}
+
+export function memoryColor(rssMB: number): Color {
+  if (rssMB >= HIGH_MEMORY_MB) return Color.Red;
+  if (rssMB >= ELEVATED_MEMORY_MB) return Color.Yellow;
+  return Color.SecondaryText;
+}
+
+export function pressureColor(pressure: MemoryPressure): Color {
+  if (pressure === "critical") return Color.Red;
+  if (pressure === "elevated") return Color.Yellow;
+  return Color.Green;
+}
+
+export function formatMB(megabytes: number): string {
+  return megabytes >= 1024 ? `${(megabytes / 1024).toFixed(1)} GB` : `${megabytes} MB`;
+}
+
+/**
+ * Swap is deliberately absent here: it already has an accessory tag, and the
+ * subtitle is the first thing Raycast truncates, so repeating it would push the
+ * compressed figure off the row.
+ */
+export function describeMemory(memory: MemoryStats): string {
+  const parts = [`${formatMB(memory.freeMB)} free`];
+  if (memory.compressedMB > 0) parts.push(`${formatMB(memory.compressedMB)} compressed`);
+  return parts.join(" · ");
 }
 
 /** Parses `ps` elapsed time: "ss", "mm:ss", "hh:mm:ss" or "dd-hh:mm:ss". */
